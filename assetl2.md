@@ -18,11 +18,13 @@ Large-language models can already spit out Solidity, but even the best achieves 
 ### 2.1 CurveScript & CurveGPT
 
 *CurveScript* is a 30-keyword functional DSL (`linear`, `sigmoid`, `lbp`, `migrate_at`, etc.).  Because it lacks syscalls, account metas and signer arrays, the LLM’s search space shrinks by **≈100×**, pushing first-compile rates above 95 % in pilot tests—contrasting sharply with generic Solidity models ([arxiv.org][1]).
-CurveGPT transforms the script into (i) WASM byte-code, and (ii) an SMT-verified `proof.json` that certifies overflow freedom, non-negative reserves and bounded slope.  
+CurveGPT - An LLM-powered assistant that only produces CurveScript.  
 
 ### 2.2 CurveVM
 
 CurveVM is a WASM pre-compile inside Solana’s Sealevel-fork runtime exposing just four instructions: `buy`, `sell`, `add_liquidity`, `migrate_to_amm`.  Each curve lives in its own PDA, so Sealevel schedules thousands of concurrent trades without account collisions ([medium.com][10]).  Every call stays below 300 k CU—well under the network’s 1.4 M limit ([solana.stackexchange.com][4]).
+
+Curve-Compiler & Proof Engine - Deterministically translates CurveScript into WASM that targets CurveVM, while generating an SMT-checked proof.json certifying overflow freedom, non-negative reserves, and bounded slopes 
 
 * **Liquidity Vault** enforces `reserve ≥ k % × market_cap` every trade and drip-vests creator tokens, borrowing Balancer LBP guard-rails ([docs.balancer.fi][11]).
 * **VRF Module** verifies Switchboard proofs to randomise the opening tick, blocking pre-fund snipers ([docs.switchboard.xyz][12]).
