@@ -1,4 +1,4 @@
-### assetL2 - the HyperLiquid of Token Launchpads on Solana ?
+### assetL2 - chatGPT meets HyperLiquid for Token Launchpads on Solana ?
 
 Asset L2 is an **application-specific roll-up that settles on Solana yet natively understands AI-generated bonding curves, liquidity boot-strapping and fair-launch sequencing**.  Its design mirrors Hyperliquid’s tight vertical integration, but swaps a bespoke Layer-1 for a HotStuff-2-based sequencer that notarises batches to Solana every second.  Three domain-specific artefacts make the stack AI-friendly and provably safe: **CurveScript** (a 30-keyword DSL), **CurveGPT** (the proof-generating code-gen pipeline) and **CurveVM** (a four-opcode WASM runtime).  Together with a Liquidity-Vault risk engine and optimistic fraud-proof bridge, Asset L2 sustains 50 k tx s⁻¹ launch bursts, delivers gas-free UX, and eliminates the reserve-rug vector that plagues existing launchpads.
 
