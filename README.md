@@ -57,14 +57,6 @@ Hyperliquid’s custom chain hits **≈200 k TPS at 400 ms finality** :contentRe
 
 ### AI-first code-gen flow
 
-| Phase                                                                                                                                                                                        | Rationale |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| **Prompt → CurveScript DSL** – a 30-keyword, functional language (`linear`, `sigmoid`, `auction`, `lbp`) replaces hundreds of Solana crates, slashing hallucination space. ([dl.acm.org][3]) |           |
-| **Static proof** – the DSL compiles to an *intermediate verifier* that checks for overflow, negative reserves, and rug vectors; SMT solver emits `proof.json`.                               |           |
-| **WASM emission** – a deterministic Rust-to-WASM compiler feeds the pre-compile; 32-bit arithmetic maps 1:1 to WASM op-codes for speed ([hacken.io][4]).                                     |           |
-| **Template registry** – sequencer DAO must sign the `(wasm_hash, proof_hash)` pair before it’s callable.                                                                                     |           |
-
-Because the generator never has to touch syscalls, account metas or signer arrays ([solana.com][9]), the LLM only needs to learn curve math — not Solana plumbing — pushing compile-success rates far beyond the 73 % reported for generic Solidity models.
 
 ```
 CurveScript ─▶ CurveGPT ─▶ CurveTemplate ─┐
