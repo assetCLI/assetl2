@@ -19,11 +19,24 @@ Token-launchpads that lean on such code must therefore provide **runtime guard-r
 ## 2 Background & Motivation
 ### 2.1 Current Launchpad Pain-points  
 * **Bot sniping & MEV** – Public mempools let bots capture up-to **90 % of first-minute supply** on Pump.fun launches :contentReference[oaicite:2]{index=2}.  
-* **Compute bursts** – viral launches hit **30 k tx s⁻¹**, brushing against Solana’s **1.4 M CU per-tx and 48 M CU per-block caps** :contentReference[oaicite:3]{index=3}.  
-* **Manual liquidity & rugs** – creators migrate reserves off-chain, and LBPs still suffer dump-rugs despite dynamic pricing :contentReference[oaicite:4]{index=4}.  
+* **Compute bursts** – viral launches hit **30 k tx s⁻¹**, brushing against Solana’s **1.4 M CU per-tx and 48 M CU per-block caps** :contentReference[oaicite:3]{index=3}.
+* **Curve math in slow contracts**  - 10-30 k tx bursts overload Solana programs. Step-function curves still clog RPCs during meme-coin mania ([solana.stackexchange.com][9]) 
+* **Manual Raydium liquidity & rugs** – Raydium pool initialisation runs from an off-chain signer today & Liquidity gap lets price crash post-curv
 * **AI codegen risk** – LLMs hallucinate unsafe patterns; recent surveys list AI-generated contracts as an emerging attack vector :contentReference[oaicite:5]{index=5}.
 
+
+
 ### 2.2 Hyperliquid Precedent  
+#### What Hyperliquid teaches us
+
+Hyperliquid’s success comes from three chain-level affordances:
+
+* **Deterministic, sub-second sequencing** – HyperBFT locks a single global order book at \~200 k TPS with two-round commits. ([hyperliquid.gitbook.io][1], [hyperliquid.gitbook.io][2])
+* **Risk engine in the state machine** – margin, liquidation, and cross-asset collateral are validated every block, not in separate contracts. ([medium.com][3])
+* **Gasless trading** – users pay only maker/taker fees; validators convert a spread into network revenue. ([hyperliquid.gitbook.io][4], [ainvest.com][5], [ainvest.com][6])
+
+Those choices directly drive volume and UX; the goal is to replicate the pattern for token launches.
+
 Hyperliquid’s custom chain hits **≈200 k TPS at 400 ms finality** :contentReference[oaicite:6]{index=6} by embedding its order-book and risk engine in “HyperCore” and running a two-round HotStuff derivative (“HyperBFT”). Asset L2 applies the same **“vertical-integration” thesis** to token launches but settles batches on Solana for security.
 
 ---
@@ -41,24 +54,73 @@ Hyperliquid’s custom chain hits **≈200 k TPS at 400 ms finality** :contentRe
 ---
 
 ## 4 System Architecture
-  ┌─────────────┐          ┌──────────────┐
-  │  Solana L1  │◄─DA/Settlement─┤ Batch Poster │
-  └─────────────┘          └──────────────┘
-          ▲                         ▲
-          │ Fraud-Proofs            │ BLS-signed State Roots
-  ┌──────────────┐          ┌───────────────┐
-  │ AssetSequencer│──Tx──►│   CurveVM      │
-  └──────────────┘          │  + Liquidity │
-    (BFT, 250 ms)           │    Vault     │
-                            └───────────────┘
+
+### AI-first code-gen flow
+
+| Phase                                                                                                                                                                                        | Rationale |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| **Prompt → CurveScript DSL** – a 30-keyword, functional language (`linear`, `sigmoid`, `auction`, `lbp`) replaces hundreds of Solana crates, slashing hallucination space. ([dl.acm.org][3]) |           |
+| **Static proof** – the DSL compiles to an *intermediate verifier* that checks for overflow, negative reserves, and rug vectors; SMT solver emits `proof.json`.                               |           |
+| **WASM emission** – a deterministic Rust-to-WASM compiler feeds the pre-compile; 32-bit arithmetic maps 1:1 to WASM op-codes for speed ([hacken.io][4]).                                     |           |
+| **Template registry** – sequencer DAO must sign the `(wasm_hash, proof_hash)` pair before it’s callable.                                                                                     |           |
+
+Because the generator never has to touch syscalls, account metas or signer arrays ([solana.com][9]), the LLM only needs to learn curve math — not Solana plumbing — pushing compile-success rates far beyond the 73 % reported for generic Solidity models.
+
+```
+CurveScript ─▶ CurveGPT ─▶ CurveTemplate ─┐
+                                          │
+    User tx ─▶ AssetSequencer-BFT ─▶ CurveVM ─▶ Liquidity Vault & Risk Engine
+                                          │
+                              Batch Poster │
+                                          ▼
+                                    Solana L1 (AssetRollup program + fraud proofs)
+```
+
+### Developer workflow (concrete example)
+
+```text
+# Prompt to CurveGPT
+“Launch 21 M supply token on a LINEAR curve: start $0.005, +0.1 % per 100k sold,
+auto-migrate when reserve hits 300 SOL, 5 % creator escrow.”
+
+# Generated CurveScript (excerpt)
+template linear_basic {
+  start_price = 0.005
+  slope       = 0.001
+  step        = 100000
+  migrate_at  = reserve >= 300 * SOL
+  escrow_pc   = 5
+}
+```
+
+*Dev compiles → WASM → `template.register()` → governance vote → `launch()`.*
+No Anchor boiler-plate, no CPI juggling, no signer arrays.
+
+---
+
+### Components
 
 
-* **AssetSequencer-BFT** handles ordering and fairness.  
-* **CurveVM** executes four op-codes (`buy`, `sell`, `add_liquidity`, `migrate_to_amm`).  
-* **Liquidity Vault** and **Risk Engine** run inside CurveVM.  
-* **Batch Poster** commits Merkle roots to Solana every second, enabling fraud proofs.
-* **CurveGPT LLM**
-* **CurveScript**
+| Acronym / Term                    | Formal role                                                                                                                                                        | Why it exists (analogy to Hyperliquid)                                                                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **CurveScript (DSL)**             | 30-keyword, function-style language that expresses price shapes, reserve rules, and migration triggers.                                                            | Removes 95 % of Solana boiler-plate, giving LLMs a *much* smaller search space; smart-contract studies show compile-success rises sharply when the grammar is constrained.([arxiv.org][1], [sol.sbc.org.br][2]) |
+| **CurveGPT**                      | Ultra-small language that an LLM can compile into safe bonding-curve byte-code: Prompt → CurveScript → static analysis → WASM + `proof.json`.                                                                                | Plays the same part as Hyperliquid’s off-chain order-encoding service—codegen happens once, results are deterministic and audited before they touch state.                                                      |
+| **CurveVM**                       | Domain-specific WASM runtime that executes only launch-pad op-codes. WASM pre-compile inside AssetCore-SVM that executes `buy`, `sell`, etc.; updates `CurveState`, `LiquidityVault`, and `ReserveRatio` structs in RAM-resident slabs. | Mirrors HyperCore (risk engine lives *inside* the state machine). Restricted op-codes keep every call well under Solana’s 1.4 M compute-unit cap.([solana.com][3], [troubles.md][4])                            |
+| **Liquidity Vault & Risk Engine** | Native module that enforces *reserve ≥ x % of market cap* and drip-vests creator tokens.                                                                           | Equivalent to Hyperliquid’s margin/liquidation checks; design borrows Balancer’s LBP reserve logic to prevent rugs.([balancer.gitbook.io][5], [balancer.gitbook.io][6])                                         |
+| **AssetSequencer-BFT**            | Two-phase HotStuff-style BFT that orders roll-up blocks every ≈ 250 ms. 5-to-7 node committee running a two-phase HotStuff derivative; produces “launch-blocks” every 250 ms.                                                              | Gives deterministic ordering and MEV resistance—exactly what HyperBFT does for its perps book.([eprint.iacr.org][7], [medium.com][8])                                                                           |
+| **Batch Poster**                  | Selected sequencer that every second submits `{MerkleRoot, BLS_sig}` to the Solana `AssetRollup` program.                                                          | Provides data-availability and opens the door for **fraud proofs**, the standard optimistic-roll-up safety valve.([gate.com][9], [ethereum.stackexchange.com][10])                                              |
+
+[1]: https://arxiv.org/abs/2505.08542?utm_source=chatgpt.com "Guiding LLM-based Smart Contract Generation with Finite State Machine"
+[2]: https://sol.sbc.org.br/index.php/sbrc/article/download/35126/34917/?utm_source=chatgpt.com "[PDF] Comparative Analysis of Smart Contract Generation Using Large ..."
+[3]: https://solana.com/developers/guides/advanced/how-to-optimize-compute?utm_source=chatgpt.com "How to Optimize Compute Usage on Solana"
+[4]: https://troubles.md/why-wasm/?utm_source=chatgpt.com "Wasm on the Blockchain: The Lesser Evil - troubles.md"
+[5]: https://balancer.gitbook.io/balancer/smart-contracts/smart-pools/liquidity-bootstrapping-faq?utm_source=chatgpt.com "Liquidity Bootstrapping FAQ | Balancer V1 - GitBook"
+[6]: https://balancer.gitbook.io/balancer/guides/smart-pool-templates-gui/liquidity-bootstrapping-pool?utm_source=chatgpt.com "Liquidity Bootstrapping Pool | Balancer V1 - GitBook"
+[7]: https://eprint.iacr.org/2023/397.pdf?utm_source=chatgpt.com "[PDF] HotStuff-2: Optimal Two-Phase Responsive BFT"
+[8]: https://medium.com/%40Elifhilalumucu/understanding-hotstuff-and-byzantine-fault-tolerance-393ca878173f?utm_source=chatgpt.com "Understanding HotStuff and Byzantine Fault Tolerance - Medium"
+[9]: https://www.gate.com/learn/articles/fraud-proof-and-validity-proof-systems-in-ethereum-rollups/4824?utm_source=chatgpt.com "Fraud Proof and Validity Proof Systems in Ethereum Rollups"
+[10]: https://ethereum.stackexchange.com/questions/111023/how-does-optimistic-rollup-work?utm_source=chatgpt.com "how does optimistic rollup work? - Ethereum Stack Exchange"
+
 
 ---
 
@@ -123,59 +185,15 @@ Anything else (NFT minting, governance, vesting) is delegated to the Solana main
 
 Parallelism is trivial: each curve lives in its own PDA; two buys on different curves never collide ([medium.com][5]).
 
-#### 6.2.3 Liquidity Vault
 
-A vault module tracks creator/reserve ratios and enforces *reserve ≥ x % × market cap* each block. If the ratio slips, CurveVM pauses buys and imposes a sell rebate until balance is restored, mirroring Balancer LBP stop-loss logic ([balancer.gitbook.io][6]).
 
 #### 6.2.4 VRF start-price
 
 Launchers call Switchboard VRF; proof is verified inside CurveVM before block one, foiling bot pre-funding ([switchboardxyz.medium.com][7], [solana.com][8]).
 
----
-
-### 6.3 AI-first code-gen flow
-
-| Phase                                                                                                                                                                                        | Rationale |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| **Prompt → CurveScript DSL** – a 30-keyword, functional language (`linear`, `sigmoid`, `auction`, `lbp`) replaces hundreds of Solana crates, slashing hallucination space. ([dl.acm.org][3]) |           |
-| **Static proof** – the DSL compiles to an *intermediate verifier* that checks for overflow, negative reserves, and rug vectors; SMT solver emits `proof.json`.                               |           |
-| **WASM emission** – a deterministic Rust-to-WASM compiler feeds the pre-compile; 32-bit arithmetic maps 1:1 to WASM op-codes for speed ([hacken.io][4]).                                     |           |
-| **Template registry** – sequencer DAO must sign the `(wasm_hash, proof_hash)` pair before it’s callable.                                                                                     |           |
-
-Because the generator never has to touch syscalls, account metas or signer arrays ([solana.com][9]), the LLM only needs to learn curve math — not Solana plumbing — pushing compile-success rates far beyond the 73 % reported for generic Solidity models ([dl.acm.org][3]).
 
 ---
 
-
-### 6.5 Security & performance guard-rails
-
-* **Compute-budget hints** baked into templates so launches can’t DOS the sequencer ([solana.com][1], [solana.stackexchange.com][13]).
-* **Fraud proofs** – if a sequencer posts an invalid Merkle root, anyone can replay the WASM in the on-chain program and slash the stake.
-* **Bot-sniping deterrent** – sealed-bid queue for the first three launch-blocks, addressing the Reddit-documented Pump.fun bot issue ([reddit.com][14], [youtube.com][15]).
-
----
-
-### 6.6 Developer workflow (concrete example)
-
-```text
-# Prompt to CurveGPT
-“Launch 21 M supply token on a LINEAR curve: start $0.005, +0.1 % per 100k sold,
-auto-migrate when reserve hits 300 SOL, 5 % creator escrow.”
-
-# Generated CurveScript (excerpt)
-template linear_basic {
-  start_price = 0.005
-  slope       = 0.001
-  step        = 100000
-  migrate_at  = reserve >= 300 * SOL
-  escrow_pc   = 5
-}
-```
-
-*Dev compiles → WASM → `template.register()` → governance vote → `launch()`.*
-No Anchor boiler-plate, no CPI juggling, no signer arrays.
-
----
 
 ### 6.7 How CurveVM maps the Hyperliquid thesis
 
@@ -216,20 +234,12 @@ It is to bonding curves what Hyperliquid’s HyperCore is to perpetuals: the sec
 [15]: https://www.youtube.com/watch?pp=0gcJCdgAo7VqN5tD&v=xMY22mP_iCU&utm_source=chatgpt.com "pump fun trading bot 2 snipe new tokens - YouTube"
 
 
----
 
-## 7 AI Code-Generation & Safety Pipeline
-1. **Prompt → CurveScript** (30-keyword DSL).  
-2. **Static Proof** – SMT solver checks overflow, re-entrancy, rug vectors.  
-3. **Compile** – deterministic Rust→WASM.  
-4. **Audit & DAO Vote** – ≥⅔ sequencer stake must sign both hashes.  
-5. **Template Activation** – only then can a `launch()` call reference the template.
-
-Peer-reviewed surveys show transformer-based detectors catch ≈93 % of known smart-contract bugs :contentReference[oaicite:11]{index=11}, so the pipeline combines AI *and* formal logic for defense-in-depth.
-
----
 
 ## 8 Liquidity Vault & Risk Engine
+
+A vault module tracks creator/reserve ratios and enforces *reserve ≥ x % × market cap* each block. If the ratio slips, CurveVM pauses buys and imposes a sell rebate until balance is restored, mirroring Balancer LBP stop-loss logic ([balancer.gitbook.io][6]).
+
 * **Reserve ratio guard** pauses buys and rebates sells if vault : MCAP < X %.  
 * **Creator escrow** vests linearly over 30 days, inspired by LBP designs that curb dump-rugs :contentReference[oaicite:12]{index=12}.  
 * **Auto-AMM migration** seeds Raydium once supply and reserve thresholds hit, closing the post-curve liquidity gap.
@@ -250,6 +260,14 @@ Hyperliquid’s maker/taker gas-free model validates the UX upside of this desig
 * **Fraud proofs** on Solana ensure eventual correctness.  
 * **Template registry** blocks un-audited AI code.  
 * **Local fee markets** and small batch sizes mitigate congestion :contentReference[oaicite:14]{index=14}.
+
+
+| Layer                  | Control                                                    | Inspiration                                                       |
+| ---------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| **Sequencer slashing** | Fraud-proof in Solana program; stake lost for mis-ordering | Optimistic roll-ups                                               |
+| **Reserve escrow**     | Creator tokens drip-vest over 30 days                      | Balancer LBPs pause-swap mechanic ([balancer.gitbook.io][11])     |
+| **Template registry**  | DAO vote to add / deprecate curves                         | Hyperliquid governance on fee tiers ([hyperliquid.gitbook.io][4]) |
+
 
 ---
 
@@ -275,56 +293,16 @@ Hyperliquid’s maker/taker gas-free model validates the UX upside of this desig
 A custom **Solana-anchored roll-up can give AssetCLI the same “everything-native” advantage that Hyperliquid enjoys—only the native objects are *bonding curves, liquidity vaults, and launch epochs* instead of order-book rows.**
 By hard-wiring these launch-pad primitives into the roll-up’s state machine (AssetCore-SVM) and sequencing logic (AssetSequencer-BFT), you get deterministic first-block pricing, gas-free UX, automatic reserve management, and a built-in migration to secondary AMMs—all features that today’s Pump.fun/DAOs.fun rely on fragile off-chain scripts for.
 
----
-
-### 13.1 What Hyperliquid teaches us
-
-Hyperliquid’s success comes from three chain-level affordances:
-
-* **Deterministic, sub-second sequencing** – HyperBFT locks a single global order book at \~200 k TPS with two-round commits. ([hyperliquid.gitbook.io][1], [hyperliquid.gitbook.io][2])
-* **Risk engine in the state machine** – margin, liquidation, and cross-asset collateral are validated every block, not in separate contracts. ([medium.com][3])
-* **Gasless trading** – users pay only maker/taker fees; validators convert a spread into network revenue. ([hyperliquid.gitbook.io][4], [ainvest.com][5], [ainvest.com][6])
-
-Those choices directly drive volume and UX; the goal is to replicate the pattern for token launches.
-
----
-
-### 13.2 Launch-pad pain-points that need native treatment
-
-| Issue on generic chains                        | Why it matters at launch                   | Evidence                                                                                        |
-| ---------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| **Bot sniping & MEV** reorder first-block buys | Small wallets get priced out               | Pump.fun’s first minute often sells 90 % of supply to bots ([medium.com][7], [binance.com][8])  |
-| **Curve math in slow contracts**               | 10-30 k tx bursts overload Solana programs | Step-function curves still clog RPCs during meme-coin mania ([solana.stackexchange.com][9])     |
-| **Manual Raydium seeding**                     | Liquidity gap lets price crash post-curve  | Raydium pool initialisation runs from an off-chain signer today ([solana.stackexchange.com][9]) |
-| **No reserve safety rails**                    | Creators can rug liquidity                 | Cointelegraph lists bonding-curve rugs as a top DeFi risk ([cointelegraph.com][10])             |
 
 
-
-
----
-
-### 13.5 Security layers
-
-| Layer                  | Control                                                    | Inspiration                                                       |
-| ---------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Sequencer slashing** | Fraud-proof in Solana program; stake lost for mis-ordering | Optimistic roll-ups                                               |
-| **Reserve escrow**     | Creator tokens drip-vest over 30 days                      | Balancer LBPs pause-swap mechanic ([balancer.gitbook.io][11])     |
-| **Template registry**  | DAO vote to add / deprecate curves                         | Hyperliquid governance on fee tiers ([hyperliquid.gitbook.io][4]) |
-
----
-
-### 13.6 Reality check: do we have a disadvantage as a Solana roll-up?
+### Take-away - Reality check: do we have a disadvantage as a Solana roll-up?
 
 * **Order-book latency** – Solana’s TPU + priority fees still introduce unpredictable millis that are fatal to 50× leverage trading; Hyperliquid needed consistent sub-200 ms blocks. ([ainvest.com][5], [ainvest.com][6])
 * **Deterministic order** – roll-ups can seal ordering, but CEX-like latency would still require off-chain validity proofs.
 
 Token launches, by contrast, tolerate \~500 ms extra latency and don’t need continuous mark-to-market, so **AssetCLI’s roll-up inherits Solana security without sacrificing its product-defining UX.**
 
----
 
----
-
-### Take-away
 
 
 [1]: https://hyperliquid.gitbook.io/hyperliquid-docs?utm_source=chatgpt.com "Hyperliquid Docs: About Hyperliquid"
