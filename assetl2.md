@@ -18,7 +18,7 @@ Large-language models can already spit out Solidity, but even the best achieves 
 ### 2.1 CurveScript & CurveGPT
 
 *CurveScript* is a 30-keyword functional DSL (`linear`, `sigmoid`, `lbp`, `migrate_at`, etc.).  Because it lacks syscalls, account metas and signer arrays, the LLM’s search space shrinks by **≈100×**, pushing first-compile rates above 95 % in pilot tests—contrasting sharply with generic Solidity models ([arxiv.org][1]).
-CurveGPT transforms the script into (i) WASM byte-code, and (ii) an SMT-verified `proof.json` that certifies overflow freedom, non-negative reserves and bounded slope.  Templates are activated only after a DAO vote.
+CurveGPT transforms the script into (i) WASM byte-code, and (ii) an SMT-verified `proof.json` that certifies overflow freedom, non-negative reserves and bounded slope.  
 
 ### 2.2 CurveVM
 
