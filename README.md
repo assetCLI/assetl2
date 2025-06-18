@@ -1,4 +1,4 @@
-## assetL2 - the HyperLiquid of Token Launchpads on Solana ? 
+## assetL2 - chatGPT meets HyperLiquid for Token Launchpads on Solana ? 
 
 Asset L2 is an **application-specific Layer-2 roll-up on Solana that natively understands AI-generated bonding curves, liquidity bootstrapping and fair-launch sequencing**.  
 Like Hyperliquid—whose custom L1 dominates on-chain perpetual futures by embedding an order-book and risk engine in its state machine—Asset L2 embeds **CurveVM**, **Liquidity Vaults**, an **AI proof pipeline**, and a **HotStuff-2-inspired sequencer** directly into its execution environment.  
