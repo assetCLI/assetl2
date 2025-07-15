@@ -24,7 +24,7 @@ from src.compiler import compile_program
 from src.curvevm import CurveVM
 from src.rollup import BatchPoster, FakeSolanaClient
 
-script = "BUY 5"
+script = """BUY 5\nSELL 2\nADD_LIQUIDITY 3\nMIGRATE_TO_AMM 1"""
 program = compile_program(parse(script))
 vm = CurveVM()
 vm.execute(program)
