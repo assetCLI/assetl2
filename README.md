@@ -16,7 +16,22 @@ Why does this happen?  Creators must hand over control to generic launchpads, an
 
 4. CurveVM. A micro-VM inside our roll-up that runs only four op-codes—buy, sell, add_liquidity, migrate_to_amm—so every call stays below 300 k compute units versus Solana’s 1.4 M ceiling and executes in parallel  with zero account collisions 
 
-* **AssetL2 roll-up.**  Anchored to Solana but sequenced by AssetSequencer-BFT - a Hyperliquid style consensus that ultimately settles to Solana every second and gives you bot-proof ordering of transactions. 
+* **AssetL2 roll-up.**  Anchored to Solana but sequenced by AssetSequencer-BFT - a Hyperliquid style consensus that ultimately settles to Solana every second and gives you bot-proof ordering of transactions.
+
+```python
+from src.curvescript import parse
+from src.compiler import compile_program
+from src.curvevm import CurveVM
+from src.rollup import BatchPoster, FakeSolanaClient
+
+script = "BUY 5"
+program = compile_program(parse(script))
+vm = CurveVM()
+vm.execute(program)
+client = FakeSolanaClient()
+BatchPoster(client).commit(program)
+```
+
 
 Hyperliquid’s edge is owning the trading state machine; **our edge is owning the *code-generation* state machine.**  Creators get deterministic first-block fairness, gas-free UX, and a cryptographic proof that the AI-written curve can’t rug pull - these are advantages that generic pads and generic code-gen simply can’t match.
 
