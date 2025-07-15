@@ -10,6 +10,8 @@ from src.curvescript import parse
 from src.compiler import compile_program
 from src.rollup import FakeSolanaClient, BatchPoster
 from src.asset_sequencer_bft import Consensus, Block, round_robin
+import pytest
+from unittest.mock import patch
 
 
 def test_round_robin_schedule():
@@ -33,3 +35,22 @@ def test_consensus_commit():
     encoded = json.dumps(payload["program"], sort_keys=True).encode("utf-8")
     expected_root = hashlib.sha256(encoded).hexdigest()
     assert payload["root"] == expected_root
+
+
+def test_consensus_no_validators():
+    client = FakeSolanaClient()
+    poster = BatchPoster(client)
+    with pytest.raises(ValueError):
+        Consensus([], poster)
+
+
+def test_state_root_divergence():
+    script = "BUY 1"
+    program = compile_program(parse(script))
+    client = FakeSolanaClient()
+    poster = BatchPoster(client)
+    consensus = Consensus(["A", "B"], poster)
+    block = Block(program=program)
+    with patch("src.asset_sequencer_bft.consensus._state_root", side_effect=["a", "b"]):
+        with pytest.raises(ValueError):
+            consensus.propose_and_commit(block)
