@@ -12,6 +12,7 @@ from .leader_schedule import round_robin
 @dataclass
 class Block:
     program: List[Instruction]
+    kind: str = "fast"
 
 
 def _state_root(program: List[Instruction]) -> str:
