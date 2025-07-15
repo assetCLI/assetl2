@@ -1,6 +1,7 @@
 import base64
 import json
 from typing import List
+import hashlib
 
 from .compiler import Instruction
 
@@ -21,9 +22,12 @@ class BatchPoster:
         self.client = client
 
     def commit(self, program: List[Instruction]) -> str:
-        # Serialize program as JSON for this demo
-        payload = json.dumps([
+        """Serialize the program, compute a Merkle-style root and post it."""
+        instr_list = [
             {"op": ins.opcode, "arg": ins.operand} for ins in program
-        ]).encode("utf-8")
+        ]
+        encoded = json.dumps(instr_list, sort_keys=True).encode("utf-8")
+        root = hashlib.sha256(encoded).hexdigest()
+        payload = json.dumps({"root": root, "program": instr_list}).encode("utf-8")
         # Send to Solana (stubbed)
         return self.client.send_transaction(payload)
