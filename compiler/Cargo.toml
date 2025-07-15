@@ -1,0 +1,8 @@
+[package]
+name = "compiler"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+curvevm = { path = "../curvevm" }
+borsh = "0.10"

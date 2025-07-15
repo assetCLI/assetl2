@@ -1,0 +1,9 @@
+[package]
+name = "sequencer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+compiler = { path = "../compiler" }
+curvevm = { path = "../curvevm" }
+hotshot = { path = "../hotshot" }

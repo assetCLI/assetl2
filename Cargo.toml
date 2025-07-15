@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "curvevm",
+    "compiler",
+    "sequencer",
+    "asset_rollup_program", "hotshot",
+]
+resolver = "1"
