@@ -1,0 +1,12 @@
+[package]
+name = "asset_rollup_program"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+compiler = { path = "../compiler" }
+sha2 = "0.10"
+borsh = "0.10"
+curvevm = { path = "../curvevm" }
+anchor-lang = "0.31.1"
+solana-program = "2.3.0"
