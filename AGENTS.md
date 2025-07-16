@@ -31,6 +31,7 @@ Every crate includes minimal unit tests and the workspace compiles with `cargo t
 - Missed nested documentation at first. Later confirmed no additional `AGENTS.md` existed.
 - Using Rust nightly features like edition 2024 causes build issues on stable toolchains, so the environment now installs a nightly toolchain via `rustup` to run tests.
 - Early commits lacked a full description of module roles; this file addresses that.
+- The GitHub workflow still ran Python tests even after dropping the code. We removed the Python job and added HotShot tests and a `testnet` crate to keep CI purely Rust.
 
 ## Future Work
 - Flesh out the HotShot consensus implementation and integrate real networking per `MIGRATION_PLAN.md`.
