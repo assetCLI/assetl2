@@ -1020,9 +1020,13 @@ checksum = "56e6fa9c48d24d85fb3de5ad847117517440f6beceb7798af16b4a87d616b8d0"
 name = "sequencer"
 version = "0.1.0"
 dependencies = [
+ "base64 0.21.7",
  "compiler",
  "curvevm",
  "hotshot",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]
