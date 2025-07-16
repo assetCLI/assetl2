@@ -40,3 +40,7 @@ While these frameworks are not Solana-specific, they offer reusable components (
 5. **Automate builds** with `cargo` and set up CI (e.g., GitHub Actions) to run `cargo fmt`, `clippy`, and tests.
 
 This phased approach retains the current Python prototype as a specification while the Rust rewrite matures. Once feature parity is reached, deprecate the Python modules and rely solely on the Rust crates for production.
+
+## Migration progress
+
+The repository now contains Rust crates for the CurveVM, compiler, sequencer, HotShot-based consensus and an Anchor rollup program.  Unit tests cover the mempool, miner and consensus logic.  A GitHub Actions workflow runs `cargo test` for CI.
