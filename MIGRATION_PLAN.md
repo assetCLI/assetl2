@@ -43,4 +43,4 @@ This phased approach retains the current Python prototype as a specification whi
 
 ## Migration progress
 
-The repository now contains Rust crates for the CurveVM, compiler, sequencer, HotShot-based consensus and an Anchor rollup program.  Unit tests cover the mempool, miner and consensus logic.  A GitHub Actions workflow runs `cargo test` for CI.
+The repository now contains Rust crates for the CurveVM, compiler, sequencer, HotShot-based consensus and an Anchor rollup program.  Unit tests cover the mempool, miner and consensus logic. A GitHub Actions workflow runs `cargo test` for CI. The original Python modules remain under `src/` with a pytest suite to ensure behavior parity.
