@@ -1,0 +1,8 @@
+[package]
+name = "assetscript"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+assetvm = { path = "../assetvm" }
+borsh = "0.10"
