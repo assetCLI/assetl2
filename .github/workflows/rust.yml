@@ -13,5 +13,7 @@ jobs:
       with:
         toolchain: stable
         profile: minimal
-    - name: Build and test
+    - name: Build and test workspace
       run: cargo test --workspace --all-targets
+    - name: Run Hotshot tests
+      run: cargo test -p hotshot

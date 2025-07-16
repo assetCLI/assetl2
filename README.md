@@ -37,6 +37,16 @@ Hyperliquid’s edge is owning the trading state machine; **our edge is owning t
 
 If you believe the next Nasdaq will be *described* in chat, not coded in Rust, join us.  **AssetCLI lets you speak your raise today and will guarantee it’s safe tomorrow.**  Thank you.
 
+## Local testnet
+
+The `testnet` crate provides a lightweight demonstration of the migration plan’s step 5. It mints
+$ASSET using `assetvm`, posts a batch via the sequencer and prints the resulting signature. Run it
+with:
+
+```bash
+cargo run -p testnet
+```
+
 [1]: https://tokeninsight.com/en/news/hyperliquid-hits-record-248-billion-perp-volume-in-may-capturing-over-10-of-binance-flow?utm_source=chatgpt.com "Hyperliquid hits record $248 billion perp volume in May, capturing ..."
 [2]: https://x.com/cryptonewsz_/status/1931312408456257895?utm_source=chatgpt.com "CryptoNewsZ - X"
 [3]: https://www.wired.com/story/madcap-rise-of-memecoin-factory-pumpfun?utm_source=chatgpt.com "The Madcap Rise of Memecoin Factory Pump.Fun"
@@ -48,3 +58,4 @@ If you believe the next Nasdaq will be *described* in chat, not coded in Rust, j
 [9]: https://solana.stackexchange.com/questions/18346/example-contract-code-for-a-bonding-curve?utm_source=chatgpt.com "Example contract code for a bonding curve? - Solana Stack Exchange"
 [10]: https://arxiv.org/html/2403.18300v1?utm_source=chatgpt.com "HotStuff-2 vs. HotStuff: The Difference and Advantage - arXiv"
 [11]: https://dune.com/jhackworth/pumpfun?utm_source=chatgpt.com "Pump.Fun"
+

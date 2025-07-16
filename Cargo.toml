@@ -5,6 +5,8 @@ members = [
     "assetvm",
     "assetscript",
     "sequencer",
-    "asset_rollup_program", "hotshot",
+    "asset_rollup_program",
+    "hotshot",
+    "testnet",
 ]
 resolver = "1"
