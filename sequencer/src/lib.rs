@@ -173,7 +173,6 @@ impl Consensus {
         Ok(self.poster.commit(&block.program))
     }
 }
-
 pub struct Miner {
     mp: Mempool,
     consensus: Consensus,
