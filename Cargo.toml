@@ -2,6 +2,8 @@
 members = [
     "curvevm",
     "compiler",
+    "assetvm",
+    "assetscript",
     "sequencer",
     "asset_rollup_program", "hotshot",
 ]
