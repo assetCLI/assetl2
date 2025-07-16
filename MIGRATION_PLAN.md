@@ -35,7 +35,8 @@ This document replaces the previous migration notes. It captures the decisions f
 2. **Run tests** with `cargo nextest run --workspace` to ensure both unit and integration tests pass.
 3. **Deploy** the Anchor program to Solana devnet using `anchor deploy`.
 4. **Start the sequencer**: launch several HotShot nodes that connect via `libp2p` and post batches through `BatchPoster`.
-5. **Mint $ASSET** using the `assetvm` logic and exercise transfers via CurveVM programs.
+5. **Mint $ASSET** using the `assetvm` logic and exercise transfers via CurveVM programs. A sample workflow lives in the `testnet` crate and can be run with `cargo run -p testnet`.
 6. **Monitor** state roots and validator performance. Iterate until stable, then open the network to external testers.
 
 Following this plan brings Asset L2 from the current prototype to a fully tested HotShot‑backed testnet running the $ASSET token.
+

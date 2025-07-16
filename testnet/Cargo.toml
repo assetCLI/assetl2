@@ -1,0 +1,12 @@
+[package]
+name = "testnet"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+compiler = { path = "../compiler" }
+curvevm = { path = "../curvevm" }
+assetvm = { path = "../assetvm" }
+assetscript = { path = "../assetscript" }
+sequencer = { path = "../sequencer" }
+
