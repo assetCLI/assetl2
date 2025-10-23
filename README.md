@@ -59,3 +59,11 @@ cargo run -p testnet
 [10]: https://arxiv.org/html/2403.18300v1?utm_source=chatgpt.com "HotStuff-2 vs. HotStuff: The Difference and Advantage - arXiv"
 [11]: https://dune.com/jhackworth/pumpfun?utm_source=chatgpt.com "Pump.Fun"
 
+
+## Sharded Perp DEX Integration
+
+We have adapted the sharded perp exchange design to run through CurveScript, CurveGPT, the
+compiler+proof engine, CurveVM, and the AssetL2 rollup. See
+`SHARDED_PERP_CURVE_INTEGRATION.md` for the implementation blueprint that keeps all router/slab
+invariants while highlighting AssetL2’s unique pipeline.
+
