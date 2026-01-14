@@ -13,6 +13,11 @@ The current codebase provides minimal stubs for the AssetScript DSL, compiler, C
 - Integrate a proof engine crate that generates R1CS/PLONK proofs for safe debit, reservation bounds, and margin math invariants (§§2–5, §6)【F:SHARDED_PERP_CURVE_INTEGRATION.md†L65-L300】【F:SHARDED_PERP_CURVE_INTEGRATION.md†L326-L357】.
 - Emit deployment manifests bundling bytecode hashes, proof hashes, config fingerprints, memory layout metadata, and CPI descriptors for rollup verification (§4, §6, §5.8)【F:SHARDED_PERP_CURVE_INTEGRATION.md†L176-L206】【F:SHARDED_PERP_CURVE_INTEGRATION.md†L300-L313】.
 - Provide static analyzers for slab memory budgets and capability scopes before code generation (§3.1, §4)【F:SHARDED_PERP_CURVE_INTEGRATION.md†L120-L149】【F:SHARDED_PERP_CURVE_INTEGRATION.md†L176-L206】.
+### Phase 2 Proof System & Verification Boundaries
+- **Proof system family**: target PLONKish systems (e.g., PLONK or Halo2) for universal circuits; keep a fallback path for R1CS/Groth16 if proving latency is critical for early pilots.
+- **Trusted setup**: prefer transparent/no-trusted-setup (Halo2/KZG with ceremony optional); if Groth16 is selected for early deployments, document the circuit-specific trusted setup and rotate it per program upgrade.
+- **On-chain vs off-chain verification**: off-chain (compiler/prover) builds proofs for margin math, reservation bounds, cap enforcement, and safe debit/credit accounting; on-chain (rollup program) verifies proof validity against the manifest and state root commitments, rejecting any proof that does not match the declared program hash.
+- **Invariants & binding**: proofs must show margin math correctness, cap enforcement, reservation constraints, and deterministic fee/price application; proofs are bound to bytecode/manifest hashes via public inputs that include the Router/slab bytecode hash, descriptor hash, and config fingerprint so the verifier enforces code+config integrity.
 
 ## Phase 3 – CurveVM Runtime Upgrades
 - Extend `curvevm/` to support capability-scoped syscalls (escrow reads/writes, cap mint/burn, clock access), deterministic metering, hashing/Merkle precompiles, and constant-time u128 arithmetic (§2.2–§2.4, §4 CurveVM bullet, §5.2)【F:SHARDED_PERP_CURVE_INTEGRATION.md†L72-L115】【F:SHARDED_PERP_CURVE_INTEGRATION.md†L187-L244】.
@@ -28,6 +33,11 @@ The current codebase provides minimal stubs for the AssetScript DSL, compiler, C
 - Upgrade `asset_rollup_program/` to store and verify (bytecode_hash, proof_hash, descriptor_hash) tuples, enforce capability scopes, and gate vault writes on proof validation (§2.4, §5.1, §6)【F:SHARDED_PERP_CURVE_INTEGRATION.md†L96-L244】【F:SHARDED_PERP_CURVE_INTEGRATION.md†L326-L336】.
 - Expand rollup state management (new crate or extend `assetvm/`) to track escrow PDAs, caps, portfolio accounts, reservation queues, and governance registries as described in §2.1 and §5.1【F:SHARDED_PERP_CURVE_INTEGRATION.md†L65-L244】.
 - Implement proof verification caching and Merkle path auditing in the HotShot executor / state tree layer (§4 AssetL2 Rollup, §6)【F:SHARDED_PERP_CURVE_INTEGRATION.md†L197-L206】【F:SHARDED_PERP_CURVE_INTEGRATION.md†L326-L336】.
+### Phase 5 Proof Verification & Trust Model
+- **Proof system family**: verify PLONKish proofs on-chain when practical (batch verification if supported), with a fallback path to Groth16 if on-chain verifier costs dominate; keep the verifier interface abstracted by proof hash + verifier ID in the manifest.
+- **Trusted setup**: if Groth16 is used, store/verifiable reference to the ceremony transcript hash in the rollup configuration; transparent schemes (e.g., Halo2) require no trusted setup.
+- **On-chain vs off-chain verification**: off-chain sequencer/prover aggregates proofs and supplies manifests + public inputs; on-chain `asset_rollup_program` verifies proofs, enforces that public inputs match bytecode/manifest hashes, and only then updates roots or vault state.
+- **Invariants & binding**: on-chain verification checks that proofs attest to margin math, cap enforcement, reservation accounting, and fee correctness, and that the proof public inputs commit to the bytecode hash, descriptor hash, and config fingerprint so upgrades cannot bypass safety checks.
 
 ## Phase 6 – Sequencer & HotShot Orchestration
 - Replace the toy sequencer in `sequencer/` with HotShot-driven batching that understands reserve→commit workflows, TTL enforcement, and descriptor hashes (§2.4, §4 AssetL2 Rollup, §5.4, §5.9, §7)【F:sequencer/src/lib.rs†L1-L204】【F:SHARDED_PERP_CURVE_INTEGRATION.md†L110-L359】【F:SHARDED_PERP_CURVE_INTEGRATION.md†L340-L359】.
