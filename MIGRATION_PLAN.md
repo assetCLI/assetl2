@@ -38,5 +38,22 @@ This document replaces the previous migration notes. It captures the decisions f
 5. **Mint $ASSET** using the `assetvm` logic and exercise transfers via CurveVM programs. A sample workflow lives in the `testnet` crate and can be run with `cargo run -p testnet`.
 6. **Monitor** state roots and validator performance. Iterate until stable, then open the network to external testers.
 
-Following this plan brings Asset L2 from the current prototype to a fully tested HotShot‑backed testnet running the $ASSET token.
+## 6. Monitoring & SLOs
+### Required metrics
+- **Batch latency** (time from sequencer ingest to root publication). Emit from the **sequencer** and surface in the **testnet** crate dashboards.
+- **Root divergence** (difference between expected local root and on-chain committed root). Emit from **sequencer** checks and verify against the **rollup program** on-chain state in **testnet**.
+- **Proof verification time** (elapsed time for on-chain verification and local verification). Emit from the **rollup program** and from local **testnet** harness verification.
+- **Node health** (peer count, consensus round timeouts, mempool depth, CPU/RAM). Emit from the **sequencer** and aggregate in **testnet**.
 
+### Logging & tracing requirements
+- Structured logs with request IDs for batch IDs, root hashes, and consensus rounds.
+- Trace spans for batch construction, HotShot proposal/commit, and on-chain submission.
+- Export logs and traces from **sequencer** services; emit verification logs from the **rollup program**; consolidate in **testnet** observability tooling.
+
+### Initial SLO targets
+- **Block interval:** p50 ≤ 250 ms, p95 ≤ 500 ms.
+- **Max acceptable reorg window:** ≤ 2 blocks.
+- **Target TPS:** 250–500 TPS sustained during testnet load runs.
+- **Root divergence:** 0 tolerated mismatches between local and on-chain roots.
+
+Following this plan brings Asset L2 from the current prototype to a fully tested HotShot‑backed testnet running the $ASSET token.
