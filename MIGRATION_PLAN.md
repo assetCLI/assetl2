@@ -56,4 +56,27 @@ This document replaces the previous migration notes. It captures the decisions f
 - **Target TPS:** 250–500 TPS sustained during testnet load runs.
 - **Root divergence:** 0 tolerated mismatches between local and on-chain roots.
 
+## 7. Operational Safety
+### Anchor program upgrade & rollback
+- **Upgrade path:** use Anchor program upgrades with a dedicated upgrade authority, only after a staged devnet → testnet rollout and a signed release checklist.
+- **Rollback path:** keep the last-known-good program binary and IDL in the deployment registry; if an upgrade regresses, immediately redeploy the prior binary with the same program ID and verify state compatibility.
+- **Sequencer coordination:** pause batch posting during the upgrade window, then resume only after post-deploy health checks and a confirmed on-chain version hash.
+
+### Validator key rotation
+- **Planned rotation:** rotate validator identity keys on a scheduled cadence (e.g., monthly) with a coordinated epoch boundary and updated committee metadata.
+- **Unplanned rotation:** if key material exposure is suspected, rotate immediately and remove the old key from the committee and any allowlists.
+- **Operational steps:** publish new keys to the config registry, restart validators with updated keystores, and run a short canary round to confirm consensus participation.
+
+### Compromised key handling
+- **Immediate containment:** halt batch posting, revoke sequencer/BatchPoster credentials, and remove compromised validator keys from the committee.
+- **On-chain response:** redeploy the Anchor program if the upgrade authority is compromised; rotate program upgrade authority and reissue PDA seeds if needed.
+- **Recovery:** generate new keys offline, update the committee set, and resume posting only after integrity checks and audit sign-off.
+
+### Incident response checklist (minimal)
+1. **Halt posting** (stop sequencer and BatchPoster submissions).
+2. **Invalidate keys** (revoke compromised validator and BatchPoster keys).
+3. **Redeploy if required** (new upgrade authority and new PDA seed where applicable).
+4. **Rotate + audit** (issue new keys, update committee, verify program state).
+5. **Resume** only after on-chain checks and monitoring confirm stability.
+
 Following this plan brings Asset L2 from the current prototype to a fully tested HotShot‑backed testnet running the $ASSET token.
